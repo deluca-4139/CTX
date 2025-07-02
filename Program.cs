@@ -26,7 +26,7 @@ app.MapGet("/events", async () => {
 });
 
 app.MapPost("/events", (Event eventInfo) => {
-    conn.Query<Event>($"""
+    var addEventToDb = conn.QuerySingle<Event>($"""
         INSERT INTO events (name, start, venue, description, capacity, sold) VALUES (
             @name,
             @start::timestamp,
@@ -34,10 +34,13 @@ app.MapPost("/events", (Event eventInfo) => {
             @description,
             @capacity,
             @sold
-        );
+        ) RETURNING id;
         """,
         eventInfo
     );
+    
+    eventInfo.Id = addEventToDb.Id;
+    return Results.Created($"/events/{eventInfo.Id}", eventInfo);
 });
 
 app.Run();
