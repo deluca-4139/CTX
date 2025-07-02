@@ -21,6 +21,7 @@ for events:
             - probably unnecessary; would just query the tickets table instead
 * create/update concert events
     - POST /events/create (not idempotent)
+        - PATCH is better for small updates; is also not idempotent, but requires extra work to confirm that data being passed in is valid in terms of shape
     - how do I pass parameters to a POST request again lol 
         - payload
 * set ticket types and pricing 

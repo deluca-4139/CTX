@@ -1,5 +1,6 @@
 using Npgsql;
 using Dapper;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
@@ -20,6 +21,27 @@ app.MapGet("/events/{id}", (int id) => {
     var retrievedEvent = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
     if(retrievedEvent.Count != 0) {
         return Results.Ok(retrievedEvent[0]);
+    } else {
+        return Results.NotFound();
+    }
+});
+
+// Event updating endpoint
+// Returns 204 No Content if updating of
+// event information was successful,
+// 404 Not Found if event doesn't exist
+app.MapPatch("/events/{id}", (int id, JsonDocument passedJson) => {
+    var retrievedEvent = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
+    if(retrievedEvent.Count != 0) {
+        var jsonEnumerator = passedJson.RootElement.EnumerateObject();
+        while(jsonEnumerator.MoveNext()) {
+            // TODO: this does not perform any 
+            // type checks on passed json; assumes
+            // that all properties passed exist
+            // on event type. Add sanitization?
+            var dbUpdate = conn.Execute($"UPDATE events SET {jsonEnumerator.Current.Name} = '{jsonEnumerator.Current.Value}' WHERE id = {id};");
+        }
+        return Results.NoContent();
     } else {
         return Results.NotFound();
     }
