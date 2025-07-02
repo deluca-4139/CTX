@@ -95,6 +95,9 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
     // Confirm event has space for ticket reservation 
     var retrievedEvent = eventQuery[0];
     if(retrievedEvent.Sold == retrievedEvent.Capacity) {
+        // TODO: possibly check to see if any 
+        // reservations have expired, and clear
+        // them out to make room for this one?
         return Results.Conflict(retrievedEvent);
     }
 
@@ -106,6 +109,7 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
     }
 
     // Confirm seat has not been reserved or sold already
+    // TODO: sanitize?
     var retrievedTicket = conn.Query<Ticket>($"SELECT * FROM tickets WHERE event = {id} AND seating = '{ticketInfo.Seating}';").AsList();
     if(retrievedTicket.Count != 0) {
         return Results.Conflict(retrievedEvent);
@@ -139,6 +143,40 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
 
     // ...and clean up.
     return Results.Created($"/tickets/{ticketInfo.Id}", ticketInfo); // TODO: this endpoint doesn't exist; make GET?
+});
+
+// Ticket purchasing endpoint
+// Confirms reservation of existing ticket.
+// Returns 404 Not Found if reservation
+// doesn't exist, 409 Conflict if 
+// reservation has expired, and 200 OK
+// if confirmation succeeds.  
+app.MapPost("/tickets/{id}/purchase", (Guid id) => {
+    // TODO: how do we confirm that
+    // the person confirming the ticket
+    // purchase has credentials to do so?
+
+    // TODO: stub payment endpoint?
+
+    // Confirm ticket reservation exists
+    var ticketQuery = conn.Query<Ticket>($"SELECT * FROM tickets WHERE id = '{id}';").AsList();
+    if(ticketQuery.Count == 0) {
+        return Results.NotFound();
+    }
+
+    // Confirm ticket not already purchased
+    if()
+
+    // Confirm reservation is not expired
+    var retrievedTicket = ticketQuery[0];
+    if(retrievedTicket.Expiry < DateTime.Now) {
+        // TODO: remove reservation
+        return Results.Conflict(retrievedTicket);
+    }
+
+    // If we're here, we can confirm the purchase
+    var dbUpdate = conn.Execute($"UPDATE tickets SET reserved = FALSE, expiry = NULL WHERE id = '{id}';");
+    return Results.Ok();
 });
 
 app.Run();
