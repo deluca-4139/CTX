@@ -43,34 +43,50 @@ psql -d tix -c "INSERT INTO events (name, start, venue, description, capacity, s
                     2000, \
                     2000 \
                 );" 
+psql -d tix -c "INSERT INTO events (name, start, venue, description, capacity, sold) VALUES ( \
+                    'The Already Happened Concert', \
+                    '2010-04-15 16:00:00', \
+                    'An Existing Venue', \
+                    'This event occured in the past. Why are you here?', \
+                    100, \
+                    80 \
+                );" 
 
 # Create tickets table
 psql -d tix -c "CREATE TABLE tickets ( \
                     id              UUID PRIMARY KEY, \
                     event           INT, \
                     ticketholder    TEXT, \
-                    seating         TEXT \
+                    seating         TEXT, \
+                    reserved        BOOLEAN, \
+                    expiry          TIMESTAMP \
                 );"
 
 # Populate tickets table
 # with example values
-psql -d tix -c "INSERT INTO tickets (id, event, ticketholder, seating) VALUES ( \
+psql -d tix -c "INSERT INTO tickets (id, event, ticketholder, seating, reserved, expiry) VALUES ( \
                     '8ff7f91e-b44d-40ac-9efd-b92891fa4139', \
                     1, \
                     'Doe, John', \
-                    'B12' \
+                    'B12', \
+                    FALSE, \
+                    NULL \
                 );"
-psql -d tix -c "INSERT INTO tickets (id, event, ticketholder, seating) VALUES ( \
+psql -d tix -c "INSERT INTO tickets (id, event, ticketholder, seating, reserved, expiry) VALUES ( \
                     '31f847cd-8f6a-4a0c-b000-db939170c263', \
                     2, \
                     'Prentiss, Jane', \
-                    'CC23' \
+                    'CC23', \
+                    FALSE, \
+                    NULL \
                 );"
-psql -d tix -c "INSERT INTO tickets (id, event, ticketholder, seating) VALUES ( \
+psql -d tix -c "INSERT INTO tickets (id, event, ticketholder, seating, reserved, expiry) VALUES ( \
                     '63aaeb93-82da-41c4-9b4e-3995e6d3b31f', \
                     2, \
                     'Prentiss, Jane', \
-                    'CC24' \
+                    'CC24', \
+                    TRUE, \
+                    '2025-07-01 12:00:00' \
                 );"
 
 # (probably will need command line arguments)

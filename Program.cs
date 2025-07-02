@@ -12,6 +12,8 @@ var connString = $"Host=localhost;Database=tix;Username={DbUser};Password={DbPas
 await using var conn = new NpgsqlConnection(connString);
 await conn.OpenAsync();
 
+int TICKET_RESERVATION_ALLOCATION = 5;
+
 app.MapGet("/", () => "Hello World!");
 
 // Event info retrieval endpoint
@@ -67,6 +69,76 @@ app.MapPost("/events", (Event eventInfo) => {
     
     eventInfo.Id = addEventToDb.Id;
     return Results.Created($"/events/{eventInfo.Id}", eventInfo);
+});
+
+// Ticket reservation endpoint
+// Requires partial ticket info in POST body,
+// namely ticketholder name and seating.
+// Returns 201 Created if ticket was 
+// successfully reserved, 404 Not Found
+// if event does exist, or 409 Conflict
+// if there was an issue with reservation.
+app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
+    // Confirm event exists
+    var eventQuery = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
+    if(eventQuery.Count == 0) {
+        return Results.NotFound();
+    }
+
+    // TODO: all three of these checks
+    // return the same HTTP response. 
+    // Can we change their response to
+    // better indicate to the client
+    // what has gone wrong during
+    // ticket reservation? 
+
+    // Confirm event has space for ticket reservation 
+    var retrievedEvent = eventQuery[0];
+    if(retrievedEvent.Sold == retrievedEvent.Capacity) {
+        return Results.Conflict(retrievedEvent);
+    }
+
+    // Confirm event is in future
+    DateTime parsedTime;
+    DateTime.TryParse(retrievedEvent.Start, out parsedTime);
+    if(parsedTime < DateTime.Now) {
+        return Results.Conflict(retrievedEvent);
+    }
+
+    // Confirm seat has not been reserved or sold already
+    var retrievedTicket = conn.Query<Ticket>($"SELECT * FROM tickets WHERE event = {id} AND seating = '{ticketInfo.Seating}';").AsList();
+    if(retrievedTicket.Count != 0) {
+        return Results.Conflict(retrievedEvent);
+    } 
+
+    // If we are here, we have confirmed
+    // we can reserve a ticket, so:
+    // update provided ticket info...
+    ticketInfo.Event = id;
+    ticketInfo.Id = Guid.NewGuid();
+    ticketInfo.Reserved = true;
+    ticketInfo.Expiry = DateTime.Now.AddMinutes(TICKET_RESERVATION_ALLOCATION);
+
+    // create entry in tickets table...
+    var createTicket = conn.QuerySingle<Ticket>($"""
+        INSERT INTO tickets (id, event, ticketholder, seating, reserved, expiry) VALUES ( 
+            @id, 
+            @event, 
+            @ticketholder, 
+            @seating, 
+            @reserved, 
+            @expiry 
+        ) RETURNING id;
+        """,
+        ticketInfo
+    );
+
+    // update events database to reflect 
+    // newly created ticket...
+    var dbUpdate = conn.Execute($"UPDATE events SET sold = {retrievedEvent.Sold + 1} WHERE id = {id};");
+
+    // ...and clean up.
+    return Results.Created($"/tickets/{ticketInfo.Id}", ticketInfo); // TODO: this endpoint doesn't exist; make GET?
 });
 
 app.Run();
