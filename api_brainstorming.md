@@ -18,6 +18,7 @@ for events:
         - capacity (contained within venue? probably not)
         - current ticket sales (to be able to compare with capacity)
         - current guestlist? (to confirm reservation cancel)
+            - probably unnecessary; would just query the tickets table instead
 * create/update concert events
     - POST /events/create (not idempotent)
     - how do I pass parameters to a POST request again lol 

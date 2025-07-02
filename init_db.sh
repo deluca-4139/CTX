@@ -14,7 +14,22 @@ if [ $? -eq 1 ]; then
     createdb tix
 fi
 
-psql -d tix -c "CREATE TABLE events (name VARCHAR(50), capacity INT);"
-psql -d tix -c "INSERT INTO events (name, capacity) VALUES ('Hello', 130);" 
+psql -d tix -c "CREATE TABLE events ( \
+                    id          INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, \
+                    name        TEXT, \
+                    start       TIMESTAMP, \
+                    venue       TEXT, \
+                    description TEXT, \
+                    capacity    INT, \
+                    sold        INT
+                );"
+psql -d tix -c "INSERT INTO events (name, start, venue, description, capacity, sold) VALUES ( \
+                    'Wicked: The Musical', \
+                    '2025-10-31 19:30:00', \
+                    '5th Ave', \
+                    'It''s Wicked: The Musical!', \
+                    1000,
+                    600
+                );" 
 
 # (probably will need command line arguments)

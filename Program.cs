@@ -26,7 +26,18 @@ app.MapGet("/events", async () => {
 });
 
 app.MapPost("/events", (Event eventInfo) => {
-    conn.Query<Event>($"INSERT INTO events (name, capacity) VALUES (@name, @capacity);", eventInfo);
+    conn.Query<Event>($"""
+        INSERT INTO events (name, start, venue, description, capacity, sold) VALUES (
+            @name,
+            @start::timestamp,
+            @venue,
+            @description,
+            @capacity,
+            @sold
+        );
+        """,
+        eventInfo
+    );
 });
 
 app.Run();
