@@ -33,20 +33,25 @@ for events:
 for tickets:
 * reserve tickets for a time window
     - what does this mean???
+        - it means reserving tickets during checkout; "this ticket is held for you for 5 minutes while you enter your payment info"
 * purchase tickets
     - POST /purchase/{id} ?? idk 
     - for "assuming there's a payment processing system I can leverage", is there a way I can create a "stubbed" function that schematically works but just always returns OK
+    - do we want to check that an event is in the future before selling a ticket?
 * cancel reservations
     - what if the person has bought more than one ticket?
+        - I think the most reasonable/sanity-preserving method here is to assume that the frontend that is using our API endpoints is able to choose and provide a specific ticket to cancel the reservation of. perhaps for "extra credit" I could create a ticket retrieval GET endpoint to facilitate this? 
     - PUT or POST? probably POST?
     - what if the person hasn't bought *any* tickets? probably simple to just check within the database first and confirm that they have one before trying to cancel it 
+    - do we want confirmation before deletion? can probably assume as above that the potential frontend consuming our API will have some sort of confirmation screen before submitting the POST request to cancel reservation
 * view ticket availability 
     - probably the same as something in the events section above
     - could also just be a GET /tickets/{id}
 * what data does a ticket hold?
     - unique ID? 
+        - does this need to be anything other than just a sequential integer? probably for security reasons it would be best to generate a UUID
     - ticketholder name
-    - seating? 
+    - seating? (should be unique within events, but that requires a more complex SQL setup)
     - event linked to? probably just event ID 
 
 other thoughts:
