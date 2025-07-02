@@ -14,4 +14,7 @@ if [ $? -eq 1 ]; then
     createdb tix
 fi
 
+psql -d tix -c "CREATE TABLE events (name VARCHAR(50), capacity INT);"
+psql -d tix -c "INSERT INTO events (name, capacity) VALUES ('Hello', 130);" 
+
 # (probably will need command line arguments)

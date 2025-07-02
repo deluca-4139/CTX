@@ -51,3 +51,5 @@ other thoughts:
 * for "updating" or "managing" event information (such as editing event information or ticket types), it would make sense for there to be a second "entity" type; admin versus customer, e.g. but I don't think this is a reasonable feature to implement, as it's not listed in the requirements, so I think it's out of scope for this project 
     - ehhh could offer authentication via headers?
     - if so then the headers should specify auth info which should be included within event information to match admins with events
+* specific reasons for using direct database queries vs. object mapper (micro ORM) vs. full ORM
+* also reasons for using endpoint API vs controller API
