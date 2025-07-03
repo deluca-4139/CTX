@@ -60,3 +60,9 @@ other thoughts:
     - if so then the headers should specify auth info which should be included within event information to match admins with events
 * specific reasons for using direct database queries vs. object mapper (micro ORM) vs. full ORM
 * also reasons for using endpoint API vs controller API
+
+next steps:
+* refactor to allow for unit testing
+* sanitization of inputs where applicable 
+* headers on requests for credentials when performing privileged actions
+* 

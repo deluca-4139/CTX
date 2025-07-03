@@ -230,7 +230,7 @@ app.MapPost("/tickets/{id}/purchase", (Guid id) => {
 
     // Confirm reservation is not expired
     if(retrievedTicket.Expiry < DateTime.Now) {
-        // TODO: remove reservation
+        conn.Execute($"DELETE FROM tickets WHERE id = '{retrievedTicket.Id}';");
         return Results.StatusCode(410);
     }
 
