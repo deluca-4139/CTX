@@ -188,4 +188,35 @@ app.MapPost("/tickets/{id}/purchase", (Guid id) => {
     return Results.Ok();
 });
 
+// Event and ticket deletion endpoints
+// These will delete the specified 
+// resource. They return 404 Not Found
+// if it does not exist, 200 OK otherwise.
+app.MapDelete("/events/{id}", (int id) => {
+    // TODO: headers for credential 
+    // confirmation would be good
+
+    // Confirm event exists
+    var eventQuery = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
+    if(eventQuery.Count == 0) {
+        return Results.NotFound();
+    }
+
+    var dbUpdate = conn.Execute($"DELETE FROM events WHERE id = {id};");
+    return Results.Ok();
+});
+app.MapDelete("/tickets/{id}", (Guid id) => {
+    // TODO: headers for credential 
+    // confirmation would be good
+
+    // Confirm ticket reservation exists
+    var ticketQuery = conn.Query<Ticket>($"SELECT * FROM tickets WHERE id = '{id}';").AsList();
+    if(ticketQuery.Count == 0) {
+        return Results.NotFound();
+    }
+
+    var dbUpdate = conn.Execute($"DELETE FROM tickets WHERE id = '{id}';");
+    return Results.Ok();
+});
+
 app.Run();
