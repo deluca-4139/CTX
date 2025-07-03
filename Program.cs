@@ -14,7 +14,7 @@ await conn.OpenAsync();
 int TICKET_RESERVATION_ALLOCATION = 5;
 
 // Stubbed external payment processing function 
-public boolean requestTicketPayment(Guid ticketId) {
+Boolean requestTicketPayment(Guid ticketId) {
     return true;
 }
 
@@ -124,7 +124,30 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
         // TODO: possibly check to see if any 
         // reservations have expired, and clear
         // them out to make room for this one?
-        return Results.Conflict("event at capacity");
+
+        // Non-atomic solution; is this an issue?
+        var possiblyExpiredTickets = conn.Query<Ticket>($"SELECT * FROM tickets WHERE event = {id} AND reserved = TRUE;").AsList();
+        // If there are no possible
+        // tickets we can remove, then
+        // we must be at capacity
+        if(possiblyExpiredTickets.Count == 0) {
+            return Results.Conflict("event at capacity");
+        }
+
+        // Otherwise, we must be able 
+        // to remove at least one ticket,
+        // which would allow the sale
+        // of a new one to go through
+        foreach(Ticket ticket in possiblyExpiredTickets) {
+            if(ticket.Expiry < DateTime.Now) {
+                conn.Execute($"DELETE FROM tickets WHERE id = '{ticket.Id}';");
+                retrievedEvent.Sold -= 1;
+            }
+        }
+        // Be sure to update the event's sold
+        // tickets number afterwards to ensure
+        // new ticket(s) can be reserved
+        conn.Execute($"UPDATE events SET sold = {retrievedEvent.Sold} WHERE id = {id};");
     }
 
     // Confirm event is in future
