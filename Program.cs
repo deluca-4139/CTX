@@ -121,10 +121,6 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
     // Confirm event has space for ticket reservation 
     var retrievedEvent = eventQuery[0];
     if(retrievedEvent.Sold == retrievedEvent.Capacity) {
-        // TODO: possibly check to see if any 
-        // reservations have expired, and clear
-        // them out to make room for this one?
-
         // Non-atomic solution; is this an issue?
         var possiblyExpiredTickets = conn.Query<Ticket>($"SELECT * FROM tickets WHERE event = {id} AND reserved = TRUE;").AsList();
         // If there are no possible

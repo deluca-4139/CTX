@@ -62,7 +62,8 @@ other thoughts:
 * also reasons for using endpoint API vs controller API
 
 next steps:
-* refactor to allow for unit testing
+* refactor the sold/capacity logic to allow for a new table that tracks ticket types, prices, and sales
+* unit testing!
 * sanitization of inputs where applicable 
 * headers on requests for credentials when performing privileged actions
-* 
+* refactoring of endpoints to move database logic into classes
