@@ -29,27 +29,35 @@ app.MapGet("/events/{id}", (int id) => {
 });
 
 // Event updating endpoint
-// Returns 204 No Content if updating of
+// Returns 200 OK if updating of
 // event information was successful,
 // 404 Not Found if event doesn't exist
-app.MapPatch("/events/{id}", (int id, JsonDocument passedJson) => {
-    var retrievedEvent = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
-    if(retrievedEvent.Count != 0) {
-        var jsonEnumerator = passedJson.RootElement.EnumerateObject();
-        while(jsonEnumerator.MoveNext()) {
-            // TODO: this does not perform any 
-            // type checks on passed json; assumes
-            // that all properties passed exist
-            // on event type. Add sanitization?
+app.MapPut("/events/{id}", (int id, Event eventInfo) => {
+    // NOTE: I would have liked for this to 
+    // be a PATCH request, but for ease of 
+    // implementation and in order to assure
+    // that the request is atomic, I've gone 
+    // with a PUT request instead. 
 
-            // This is a bad idea when it comes to 
-            // concurrency; refactor for atomicness
-            var dbUpdate = conn.Execute($"UPDATE events SET {jsonEnumerator.Current.Name} = '{jsonEnumerator.Current.Value}' WHERE id = {id};");
-        }
-        return Results.NoContent();
-    } else {
+    // Confirm event exists
+    var retrievedEvent = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
+    if(retrievedEvent.Count == 0) {
         return Results.NotFound();
     }
+
+    var dbUpdate = conn.Execute($"""
+        UPDATE events SET 
+            name = @name, 
+            start = @start::timestamp, 
+            venue = @venue, 
+            description = @description, 
+            capacity = @capacity, 
+            sold = @sold
+        WHERE id = {id};
+        """,
+        eventInfo
+    );
+    return Results.Ok();
 });
 
 // Event creation endpoint
