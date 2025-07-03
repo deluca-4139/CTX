@@ -1,6 +1,5 @@
 using Npgsql;
 using Dapper;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
@@ -14,7 +13,16 @@ await conn.OpenAsync();
 
 int TICKET_RESERVATION_ALLOCATION = 5;
 
-app.MapGet("/", () => "Hello World!");
+// Stubbed external payment processing function 
+public boolean requestTicketPayment(Guid ticketId) {
+    return true;
+}
+
+// General event information retrieval endpoint
+app.MapGet("/events", () => {
+    var retrievedEvents = conn.Query<Event>("SELECT * FROM events;");
+    return Results.Ok(retrievedEvents);
+});
 
 // Event info retrieval endpoint
 // Returns 200 OK and the data for the event
@@ -105,27 +113,32 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
     // what has gone wrong during
     // ticket reservation? 
 
+    // Chosen solution of "just write
+    // the issue in a string we return"
+    // does fix it, but. It feels ew.
+    // In future, find a better way.
+
     // Confirm event has space for ticket reservation 
     var retrievedEvent = eventQuery[0];
     if(retrievedEvent.Sold == retrievedEvent.Capacity) {
         // TODO: possibly check to see if any 
         // reservations have expired, and clear
         // them out to make room for this one?
-        return Results.Conflict(retrievedEvent);
+        return Results.Conflict("event at capacity");
     }
 
     // Confirm event is in future
     DateTime parsedTime;
     DateTime.TryParse(retrievedEvent.Start, out parsedTime);
     if(parsedTime < DateTime.Now) {
-        return Results.Conflict(retrievedEvent);
+        return Results.Conflict("past event");
     }
 
     // Confirm seat has not been reserved or sold already
     // TODO: sanitize?
     var retrievedTicket = conn.Query<Ticket>($"SELECT * FROM tickets WHERE event = {id} AND seating = '{ticketInfo.Seating}';").AsList();
     if(retrievedTicket.Count != 0) {
-        return Results.Conflict(retrievedEvent);
+        return Results.Conflict("seat already sold");
     } 
 
     // If we are here, we have confirmed
@@ -152,6 +165,10 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
 
     // update events database to reflect 
     // newly created ticket...
+    // TODO: this could be accomplished with
+    // a VIEW of the events db linking the 
+    // sold column with the tickets table
+    // (which would also ensure referentiability)
     var dbUpdate = conn.Execute($"UPDATE events SET sold = {retrievedEvent.Sold + 1} WHERE id = {id};");
 
     // ...and clean up.
@@ -171,7 +188,10 @@ app.MapPost("/tickets/{id}/purchase", (Guid id) => {
     // the person confirming the ticket
     // purchase has credentials to do so?
 
-    // TODO: stub payment endpoint?
+    // Call out to external payment solution
+    if(!requestTicketPayment(id)) {
+        return Results.StatusCode(402);
+    }
 
     // Confirm ticket reservation exists
     var ticketQuery = conn.Query<Ticket>($"SELECT * FROM tickets WHERE id = '{id}';").AsList();
