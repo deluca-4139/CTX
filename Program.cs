@@ -41,6 +41,9 @@ app.MapPatch("/events/{id}", (int id, JsonDocument passedJson) => {
             // type checks on passed json; assumes
             // that all properties passed exist
             // on event type. Add sanitization?
+
+            // This is a bad idea when it comes to 
+            // concurrency; refactor for atomicness
             var dbUpdate = conn.Execute($"UPDATE events SET {jsonEnumerator.Current.Name} = '{jsonEnumerator.Current.Value}' WHERE id = {id};");
         }
         return Results.NoContent();
@@ -53,7 +56,7 @@ app.MapPatch("/events/{id}", (int id, JsonDocument passedJson) => {
 // Returns 201 Created after creation,
 // along with the ID of the created event
 app.MapPost("/events", (Event eventInfo) => {
-    // TODO: type confirmation and sanitization for data fields?
+    // TODO: type confirmation and sanitization for data fields
     var addEventToDb = conn.QuerySingle<Event>($"""
         INSERT INTO events (name, start, venue, description, capacity, sold) VALUES (
             @name,
@@ -79,6 +82,8 @@ app.MapPost("/events", (Event eventInfo) => {
 // if event does exist, or 409 Conflict
 // if there was an issue with reservation.
 app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
+    // TODO: do some transaction analysis 
+
     // Confirm event exists
     var eventQuery = conn.Query<Event>($"SELECT * FROM events WHERE id = {id};").AsList();
     if(eventQuery.Count == 0) {
@@ -149,8 +154,10 @@ app.MapPost("/events/{id}/reserve", (int id, Ticket ticketInfo) => {
 // Confirms reservation of existing ticket.
 // Returns 404 Not Found if reservation
 // doesn't exist, 409 Conflict if 
-// reservation has expired, and 200 OK
-// if confirmation succeeds.  
+// ticket is not reserved (i.e. already
+// purchased), 410 Gone if reservation
+// has expired, and 200 OK if confirmation 
+// succeeds.  
 app.MapPost("/tickets/{id}/purchase", (Guid id) => {
     // TODO: how do we confirm that
     // the person confirming the ticket
@@ -165,13 +172,15 @@ app.MapPost("/tickets/{id}/purchase", (Guid id) => {
     }
 
     // Confirm ticket not already purchased
-    if()
+    var retrievedTicket = ticketQuery[0];
+    if(!retrievedTicket.Reserved ?? false) {
+        return Results.Conflict(retrievedTicket);
+    }
 
     // Confirm reservation is not expired
-    var retrievedTicket = ticketQuery[0];
     if(retrievedTicket.Expiry < DateTime.Now) {
         // TODO: remove reservation
-        return Results.Conflict(retrievedTicket);
+        return Results.StatusCode(410);
     }
 
     // If we're here, we can confirm the purchase
